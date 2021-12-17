@@ -1,0 +1,4 @@
+
+rootProject.name = "MaterialNavigationBar"
+include ':demo'
+include ':navigationbar'
