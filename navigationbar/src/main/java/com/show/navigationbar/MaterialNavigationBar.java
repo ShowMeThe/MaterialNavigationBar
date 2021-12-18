@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -53,6 +54,7 @@ public class MaterialNavigationBar extends FrameLayout {
     private final Object object = new Object();
 
     private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mShaderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private int mBackgroundColor = Color.WHITE;
     private int mCircleBgColor = Color.WHITE;
 
@@ -60,7 +62,7 @@ public class MaterialNavigationBar extends FrameLayout {
 
     private final long mDuration = DURATION;
 
-    private boolean alwaysShowText = false;
+    private boolean alwaysShowText = true;
 
     private RecyclerView mRecyclerView;
     private MaterialNavigationAdapter adapter;
@@ -77,6 +79,7 @@ public class MaterialNavigationBar extends FrameLayout {
     private float mSelectedPosition = 0;
     private final Path mPath = new Path();
     private final RectF mRect = new RectF();
+
 
     private final AccelerateDecelerateInterpolator mInterpolator = new AccelerateDecelerateInterpolator();
     private final LinearInterpolator mLinearInterpolator = new LinearInterpolator();
@@ -100,7 +103,7 @@ public class MaterialNavigationBar extends FrameLayout {
         setWillNotDraw(false);
         resetBackground();
         initView();
-        initAttrs();
+        initAttrs(attrs);
     }
 
 
@@ -111,6 +114,7 @@ public class MaterialNavigationBar extends FrameLayout {
         }
         setBackgroundColor(Color.TRANSPARENT);
         mPaint.setColor(mBackgroundColor);
+        mPaint.setShadowLayer(5,0,0,0x3c000000);
         mCircleBgColor = mBackgroundColor;
     }
 
@@ -134,9 +138,11 @@ public class MaterialNavigationBar extends FrameLayout {
         });
     }
 
-    private void initAttrs() {
+    private void initAttrs(AttributeSet attrs) {
+        TypedArray array = getContext().obtainStyledAttributes(attrs,R.styleable.MaterialNavigationBar);
+        alwaysShowText = array.getBoolean(R.styleable.MaterialNavigationBar_isAlwaysShowText,true);
 
-
+        array.recycle();
     }
 
     @Override
@@ -232,6 +238,8 @@ public class MaterialNavigationBar extends FrameLayout {
         mPath.lineTo(mRect.right, mRect.bottom);
         mPath.lineTo(0, mRect.bottom);
         canvas.drawPath(mPath, mPaint);
+
+
     }
 
 
@@ -458,12 +466,23 @@ public class MaterialNavigationBar extends FrameLayout {
 
     private class MaterialNavigationAdapter extends RecyclerView.Adapter<MaterialNavigationAdapter.ViewHolder> {
 
+        private final int dp_12 = DisplayUtil.dp2px(getContext(),12);
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.material_item_layout, parent, false));
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.material_item_layout, parent, false);
+            if(alwaysShowText){
+                TextView textView = view.findViewById(R.id.material_item_text);
+                FrameLayout.LayoutParams params = (LayoutParams) textView.getLayoutParams();
+                params.setMargins(0,dp_12,0,0);
+
+                ImageView imageView = view.findViewById(R.id.material_item_image);
+                params = (LayoutParams) imageView.getLayoutParams();
+                params.setMargins(0,0,0,dp_12);
+            }
+            return new ViewHolder(view);
         }
 
         @Override
