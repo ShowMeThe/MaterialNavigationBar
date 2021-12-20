@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.show.demo.databinding.ActivityMainBinding
 import com.show.navigationbar.MaterialNavigationBar
+import com.show.navigationbar.NavigationItemSelectedAdapter
 
 
 class MainActivity : AppCompatActivity() {
@@ -50,6 +51,15 @@ class MainActivity : AppCompatActivity() {
                 override fun onPageSelected(position: Int) {
                     super.onPageSelected(position)
                     bar.smoothToPosition(position)
+                }
+            })
+
+            bar.addOnItemSelectedListener(object : NavigationItemSelectedAdapter() {
+                override fun onSelected(position: Int, fromUser: Boolean) {
+                    super.onSelected(position, fromUser)
+                    if(fromUser){
+                        vp.currentItem = position
+                    }
                 }
             })
         }

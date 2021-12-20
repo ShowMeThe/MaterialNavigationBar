@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class MaterialNavigationBar extends FrameLayout {
@@ -59,6 +60,7 @@ public class MaterialNavigationBar extends FrameLayout {
     private int mCircleBgColor = Color.WHITE;
 
     private final List<NavigationItem> navigationItemList = new ArrayList<>();
+    private final List<OnItemSelectedListener> itemSelectedListeners = new ArrayList<>();
 
     private final long mDuration = DURATION;
 
@@ -114,7 +116,7 @@ public class MaterialNavigationBar extends FrameLayout {
         }
         setBackgroundColor(Color.TRANSPARENT);
         mPaint.setColor(mBackgroundColor);
-        mPaint.setShadowLayer(5,0,0,0x3c000000);
+        mPaint.setShadowLayer(5, 0, 0, 0x3c000000);
         mCircleBgColor = mBackgroundColor;
     }
 
@@ -133,14 +135,14 @@ public class MaterialNavigationBar extends FrameLayout {
         adapter.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onClick(int position) {
-                smoothToPosition(position);
+                smoothScrollToPosition(position,true);
             }
         });
     }
 
     private void initAttrs(AttributeSet attrs) {
-        TypedArray array = getContext().obtainStyledAttributes(attrs,R.styleable.MaterialNavigationBar);
-        alwaysShowText = array.getBoolean(R.styleable.MaterialNavigationBar_isAlwaysShowText,true);
+        TypedArray array = getContext().obtainStyledAttributes(attrs, R.styleable.MaterialNavigationBar);
+        alwaysShowText = array.getBoolean(R.styleable.MaterialNavigationBar_isAlwaysShowText, true);
 
         array.recycle();
     }
@@ -243,14 +245,21 @@ public class MaterialNavigationBar extends FrameLayout {
     }
 
 
+
+
+
     public boolean smoothToPosition(int position) {
+        return smoothScrollToPosition(position,false);
+    }
+
+    private boolean smoothScrollToPosition(int position,boolean fromUser){
         if (position >= itemSize) {
             position = itemSize - 1;
         }
         if (this.mSelectedPosition != position && mSwitchState != SWITCH_PROGRESS) {
             switchCircleColor((int) mSelectedPosition, position);
             createItemAnimation(mSelectedPosition, position, true);
-            createAnimatorWhenNeed(this.mSelectedPosition, position);
+            createAnimatorWhenNeed(this.mSelectedPosition, position,fromUser);
             return true;
         } else {
             return false;
@@ -333,9 +342,9 @@ public class MaterialNavigationBar extends FrameLayout {
                     })
                     .start();
 
-            if(!alwaysShowText){
+            if (!alwaysShowText) {
                 float alpha = 0f;
-                if(forward){
+                if (forward) {
                     alpha = 1f;
                 }
                 textView.animate().alpha(alpha)
@@ -348,11 +357,12 @@ public class MaterialNavigationBar extends FrameLayout {
         }
     }
 
-    private void createAnimatorWhenNeed(float start, float end) {
+    private void createAnimatorWhenNeed(float start, float end,boolean fromUser) {
         synchronized (object) {
             if (mSwitchState == SWITCH_PROGRESS) {
                 return;
             }
+            dispatchSelectedListener((int) start,(int)end,fromUser);
             if (valueAnimator != null && valueAnimator.isRunning()) {
                 valueAnimator.cancel();
                 valueAnimator.removeAllListeners();
@@ -376,6 +386,7 @@ public class MaterialNavigationBar extends FrameLayout {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     mSwitchState = SWITCH_PROGRESS_END;
+
                 }
 
                 @Override
@@ -386,6 +397,18 @@ public class MaterialNavigationBar extends FrameLayout {
             valueAnimator.start();
         }
     }
+
+    private void dispatchSelectedListener(int start, int end,boolean fromUser) {
+        Iterator<OnItemSelectedListener> iterator = itemSelectedListeners.iterator();
+        while (iterator.hasNext()){
+            OnItemSelectedListener listener = iterator.next();
+            if(listener!=null){
+                listener.onUnSelected(start,fromUser);
+                listener.onSelected(end,fromUser);
+            }
+        }
+    }
+
 
     public NavigationItem getNavigationItem(int position) {
         return navigationItemList.get(position);
@@ -464,23 +487,42 @@ public class MaterialNavigationBar extends FrameLayout {
     }
 
 
+    public interface OnItemSelectedListener {
+
+        void onUnSelected(int position, boolean fromUser);
+
+        void onSelected(int position, boolean fromUser);
+    }
+
+    public void addOnItemSelectedListener(OnItemSelectedListener navigationItemSelectedListener) {
+        if (navigationItemSelectedListener != null) {
+            itemSelectedListeners.add(navigationItemSelectedListener);
+        }
+    }
+
+    public void removeOnItemSelectedListener(OnItemSelectedListener navigationItemSelectedListener) {
+        if (navigationItemSelectedListener != null) {
+            itemSelectedListeners.add(navigationItemSelectedListener);
+        }
+    }
+
     private class MaterialNavigationAdapter extends RecyclerView.Adapter<MaterialNavigationAdapter.ViewHolder> {
 
-        private final int dp_12 = DisplayUtil.dp2px(getContext(),12);
+        private final int dp_12 = DisplayUtil.dp2px(getContext(), 12);
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View view = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.material_item_layout, parent, false);
-            if(alwaysShowText){
+            if (alwaysShowText) {
                 TextView textView = view.findViewById(R.id.material_item_text);
                 FrameLayout.LayoutParams params = (LayoutParams) textView.getLayoutParams();
-                params.setMargins(0,dp_12,0,0);
+                params.setMargins(0, dp_12, 0, 0);
 
                 ImageView imageView = view.findViewById(R.id.material_item_image);
                 params = (LayoutParams) imageView.getLayoutParams();
-                params.setMargins(0,0,0,dp_12);
+                params.setMargins(0, 0, 0, dp_12);
             }
             return new ViewHolder(view);
         }
